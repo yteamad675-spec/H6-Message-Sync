@@ -70,3 +70,4 @@ app.add_handler(CommandHandler("testviber", testviber))
 app.add_handler(CommandHandler("tasks", tasks))
 
 app.run_polling()
+к
