@@ -6,6 +6,9 @@ from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes
+from flask import Flask
+
+web = Flask(__name__)
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -111,4 +114,8 @@ app.add_handler(CommandHandler("viberpost", viberpost))
 app.add_handler(CommandHandler("testaccount", testaccount))
 app.add_handler(CommandHandler("tasks", tasks))
 
+@web.route("/webhook")
+def webhook():
+    return "OK", 200
+    
 app.run_polling()
