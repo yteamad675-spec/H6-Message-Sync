@@ -73,6 +73,30 @@ async def testaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ошибка:\n{e}"
         )
 
+async def viberpost(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "auth_token": VIBER_TOKEN,
+        "from": "879ZbjRz2zQwAi4wLdNohQ==",
+        "type": "text",
+        "text": "Тестовая публикация из Н6 Sync"
+    }
+
+    response = requests.post(
+        "https://chatapi.viber.com/pa/post",
+        headers=headers,
+        json=data,
+        timeout=20
+    )
+
+    await update.message.reply_text(
+        f"Ответ:\n{response.status_code}\n\n{response.text}"
+    )
+
 async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Задач пока нет."
@@ -83,6 +107,7 @@ app = Application.builder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("testviber", testviber))
+app.add_handler(CommandHandler("viberpost", viberpost))
 app.add_handler(CommandHandler("testaccount", testaccount))
 app.add_handler(CommandHandler("tasks", tasks))
 
