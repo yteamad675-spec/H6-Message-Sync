@@ -47,6 +47,31 @@ async def testviber(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ошибка:\n{e}"
         )
 
+async def testaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    try:
+
+        response = requests.post(
+            "https://chatapi.viber.com/pa/get_account_info",
+            json={
+                "auth_token": VIBER_TOKEN
+            },
+            timeout=20
+        )
+
+        data = response.json()
+
+        await update.message.reply_text(
+            f"Канал: {data.get('name')}\n"
+            f"Статус: {data.get('status_message')}\n"
+            f"Участников-админов: {len(data.get('members', []))}"
+        )
+
+    except Exception as e:
+
+        await update.message.reply_text(
+            f"Ошибка:\n{e}"
+        )
 
 async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -58,6 +83,7 @@ app = Application.builder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("testviber", testviber))
+app.add_handler(CommandHandler("testaccount", testaccount))
 app.add_handler(CommandHandler("tasks", tasks))
 
 app.run_polling()
