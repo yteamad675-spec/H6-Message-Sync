@@ -29,20 +29,11 @@ async def testviber(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
 
-        headers = {
-            "X-Api-Token": VIBER_TOKEN,
-            "Content-Type": "application/json"
-        }
-
-        data = {
-            "type": "text",
-            "text": "Тест Н6 Sync"
-        }
-
         response = requests.post(
-            "https://chatapi.viber.com/pa/post",
-            headers=headers,
-            json=data,
+            "https://chatapi.viber.com/pa/get_account_info",
+            json={
+                "auth_token": VIBER_TOKEN
+            },
             timeout=20
         )
 
