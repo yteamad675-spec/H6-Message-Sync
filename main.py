@@ -32,7 +32,7 @@ def home():
     return "N6 Sync Online", 200
 
 
-@web.route("/webhook")
+@web.route("/webhook", methods=["GET", "POST"])
 def webhook():
     return "OK", 200
 
