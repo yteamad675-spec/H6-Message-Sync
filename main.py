@@ -186,8 +186,12 @@ app.add_handler(CommandHandler("testaccount", testaccount))
 app.add_handler(CommandHandler("viber", viber))
 app.add_handler(CommandHandler("setwebhook", setwebhook))
 app.add_handler(CommandHandler("tasks", tasks))
-
-
+app.add_handler(
+    MessageHandler(
+        filters.UpdateType.CHANNEL_POST,
+        channel_post
+    )
+)
 # --------------------
 # Запуск
 # --------------------
