@@ -105,6 +105,18 @@ async def testaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ошибка:\n{e}"
         )
 
+async def setwebhook(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    response = requests.post(
+        "https://chatapi.viber.com/pa/set_webhook",
+        json={
+            "url": "https://h6-message-sync-production.up.railway.app/webhook",
+            "auth_token": VIBER_TOKEN
+        },
+        timeout=20
+    )
+
+    await update.message.reply_text(response.text)
 
 async def viberpost(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
