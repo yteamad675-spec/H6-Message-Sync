@@ -166,17 +166,23 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --------------------
 async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    chat = update.effective_chat
-    message = update.channel_post
+    try:
 
-    print("----- НОВЫЙ ПОСТ -----")
-    print("Канал:", chat.title)
-    print("ID:", chat.id)
+        chat = update.effective_chat
 
-    if message.text:
-        print("Текст:", message.text)
+        if update.channel_post:
 
-    print("----------------------")
+            message = update.channel_post
+
+            print(
+                f"КАНАЛ: {chat.title} | "
+                f"ID: {chat.id} | "
+                f"ТЕКСТ: {message.text}"
+            )
+
+    except Exception as e:
+
+        print(f"ОШИБКА CHANNEL_POST: {e}")
 
 app = Application.builder().token(BOT_TOKEN).build()
 
@@ -188,7 +194,7 @@ app.add_handler(CommandHandler("setwebhook", setwebhook))
 app.add_handler(CommandHandler("tasks", tasks))
 app.add_handler(
     MessageHandler(
-        filters.UpdateType.CHANNEL_POST,
+        filters.ALL,
         channel_post
     )
 )
