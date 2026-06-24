@@ -1,14 +1,13 @@
 import os
 import requests
+import threading
 
+from flask import Flask
 from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes
-from flask import Flask
-
-web = Flask(__name__)
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -20,10 +19,39 @@ if not BOT_TOKEN:
 if not VIBER_TOKEN:
     raise ValueError("VIBER_POST_API_TOKEN не найден")
 
+
+# --------------------
+# Flask
+# --------------------
+
+web = Flask(__name__)
+
+
+@web.route("/")
+def home():
+    return "N6 Sync Online", 200
+
+
+@web.route("/webhook")
+def webhook():
+    return "OK", 200
+
+
+def run_web():
+    port = int(os.getenv("PORT", 8080))
+    web.run(host="0.0.0.0", port=port)
+
+
+# --------------------
+# Telegram команды
+# --------------------
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Н6 Sync запущен.\n\n"
-        "/testviber - тест Viber\n"
+        "/testviber - проверка токена\n"
+        "/testaccount - информация о канале\n"
+        "/viberpost - тестовая публикация\n"
         "/tasks - список задач"
     )
 
@@ -50,6 +78,7 @@ async def testviber(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ошибка:\n{e}"
         )
 
+
 async def testaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
@@ -67,7 +96,7 @@ async def testaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"Канал: {data.get('name')}\n"
             f"Статус: {data.get('status_message')}\n"
-            f"Участников-админов: {len(data.get('members', []))}"
+            f"Администраторов: {len(data.get('members', []))}"
         )
 
     except Exception as e:
@@ -76,29 +105,34 @@ async def testaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ошибка:\n{e}"
         )
 
+
 async def viberpost(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    headers = {
-        "Content-Type": "application/json"
-    }
+    try:
 
-    data = {
-        "auth_token": VIBER_TOKEN,
-        "from": "879ZbjRz2zQwAi4wLdNohQ==",
-        "type": "text",
-        "text": "Тестовая публикация из Н6 Sync"
-    }
+        data = {
+            "auth_token": VIBER_TOKEN,
+            "from": "879ZbjRz2zQwAi4wLdNohQ==",
+            "type": "text",
+            "text": "Тестовая публикация из Н6 Sync"
+        }
 
-    response = requests.post(
-        "https://chatapi.viber.com/pa/post",
-        headers=headers,
-        json=data,
-        timeout=20
-    )
+        response = requests.post(
+            "https://chatapi.viber.com/pa/post",
+            json=data,
+            timeout=20
+        )
 
-    await update.message.reply_text(
-        f"Ответ:\n{response.status_code}\n\n{response.text}"
-    )
+        await update.message.reply_text(
+            f"Ответ:\n{response.status_code}\n\n{response.text}"
+        )
+
+    except Exception as e:
+
+        await update.message.reply_text(
+            f"Ошибка:\n{e}"
+        )
+
 
 async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -106,16 +140,23 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+# --------------------
+# Telegram Bot
+# --------------------
+
 app = Application.builder().token(BOT_TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("testviber", testviber))
-app.add_handler(CommandHandler("viberpost", viberpost))
 app.add_handler(CommandHandler("testaccount", testaccount))
+app.add_handler(CommandHandler("viberpost", viberpost))
 app.add_handler(CommandHandler("tasks", tasks))
 
-@web.route("/webhook")
-def webhook():
-    return "OK", 200
-    
+
+# --------------------
+# Запуск
+# --------------------
+
+threading.Thread(target=run_web).start()
+
 app.run_polling()
