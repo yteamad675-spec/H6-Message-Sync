@@ -149,7 +149,6 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("testviber", testviber))
 app.add_handler(CommandHandler("testaccount", testaccount))
 app.add_handler(CommandHandler("viberpost", viberpost))
-app.add_handler(CommandHandler("setwebhook", setwebhook))
 app.add_handler(CommandHandler("tasks", tasks))
 
 
