@@ -133,7 +133,6 @@ async def viberpost(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Ошибка:\n{e}"
         )
 
-
 async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Задач пока нет."
@@ -150,6 +149,7 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("testviber", testviber))
 app.add_handler(CommandHandler("testaccount", testaccount))
 app.add_handler(CommandHandler("viberpost", viberpost))
+app.add_handler(CommandHandler("setwebhook", setwebhook))
 app.add_handler(CommandHandler("tasks", tasks))
 
 
