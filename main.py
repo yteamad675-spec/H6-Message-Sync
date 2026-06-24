@@ -164,6 +164,19 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --------------------
 # Telegram Bot
 # --------------------
+async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    chat = update.effective_chat
+    message = update.channel_post
+
+    print("----- НОВЫЙ ПОСТ -----")
+    print("Канал:", chat.title)
+    print("ID:", chat.id)
+
+    if message.text:
+        print("Текст:", message.text)
+
+    print("----------------------")
 
 app = Application.builder().token(BOT_TOKEN).build()
 
