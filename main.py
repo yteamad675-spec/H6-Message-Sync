@@ -118,15 +118,23 @@ async def setwebhook(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(response.text)
 
-async def viberpost(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def viber(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
+
+        text = " ".join(context.args)
+
+        if not text:
+            await update.message.reply_text(
+                "Использование:\n/viber Ваш текст"
+            )
+            return
 
         data = {
             "auth_token": VIBER_TOKEN,
             "from": "879ZbjRz2zQwAi4wLdNohQ==",
             "type": "text",
-            "text": "Тестовая публикация из Н6 Sync"
+            "text": text
         }
 
         response = requests.post(
@@ -160,7 +168,7 @@ app = Application.builder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("testviber", testviber))
 app.add_handler(CommandHandler("testaccount", testaccount))
-app.add_handler(CommandHandler("viberpost", viberpost))
+app.add_handler(CommandHandler("viber", viber))
 app.add_handler(CommandHandler("setwebhook", setwebhook))
 app.add_handler(CommandHandler("tasks", tasks))
 
