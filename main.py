@@ -1,6 +1,7 @@
 import os
 import requests
 import threading
+import asyncio
 
 from flask import Flask, send_from_directory
 from telegram import Update
@@ -29,6 +30,7 @@ if not VIBER_TOKEN:
 
 web = Flask(__name__)
 MEDIA_FOLDER = "media"
+albums = {}
 Path(MEDIA_FOLDER).mkdir(exist_ok=True)
 
 
@@ -176,107 +178,283 @@ async def send_to_viber(message):
 
     try:
 
-        text = message.text or message.caption or "[Без текста]"
+        text = message.text or message.caption or ""
 
-        # Фото
+
+        # ----------------
+        # Фото альбомы
+        # ----------------
+
         if message.photo:
 
-            file = await message.photo[-1].get_file()
-
-            filename = f"{message.message_id}.jpg"
-
-            await file.download_to_drive(
-                f"media/{filename}"
-            )
-
-            url = (
-                "https://h6-message-sync-production.up.railway.app/"
-                f"media/{filename}"
-            )
-
-            data = {
-                "auth_token": VIBER_TOKEN,
-                "from": "879ZbjRz2zQwAi4wLdNohQ==",
-                "type": "picture",
-                "text": text,
-                "media": url
-            }
+            group_id = message.media_group_id
 
 
+            if group_id:
+
+                if group_id not in albums:
+                    albums[group_id] = []
+
+
+                file = await message.photo[-1].get_file()
+
+                filename = f"{message.message_id}.jpg"
+
+                path = f"media/{filename}"
+
+
+                await file.download_to_drive(path)
+
+
+                albums[group_id].append(path)
+
+
+                # ждём остальные фото
+                await asyncio.sleep(2)
+
+
+                photos = albums.pop(group_id)
+
+
+                for photo in photos:
+
+                    url = (
+                        "https://h6-message-sync-production.up.railway.app/"
+                        + photo
+                    )
+
+
+                    data = {
+
+                        "auth_token": VIBER_TOKEN,
+
+                        "from": "879ZbjRz2zQwAi4wLdNohQ==",
+
+                        "type": "picture",
+
+                        "text": text,
+
+                        "media": url
+
+                    }
+
+
+                    requests.post(
+
+                        "https://chatapi.viber.com/pa/post",
+
+                        json=data
+
+                    )
+
+
+                return
+
+
+            else:
+
+
+                file = await message.photo[-1].get_file()
+
+                filename = f"{message.message_id}.jpg"
+
+                path = f"media/{filename}"
+
+
+                await file.download_to_drive(path)
+
+
+                url = (
+                    "https://h6-message-sync-production.up.railway.app/"
+                    + path
+                )
+
+
+                data = {
+
+                    "auth_token": VIBER_TOKEN,
+
+                    "from": "879ZbjRz2zQwAi4wLdNohQ==",
+
+                    "type": "picture",
+
+                    "text": text,
+
+                    "media": url
+
+                }
+
+
+
+        # ----------------
         # Видео
+        # ----------------
+
         elif message.video:
+
 
             file = await message.video.get_file()
 
+
             filename = f"{message.message_id}.mp4"
 
-            await file.download_to_drive(
-                f"media/{filename}"
-            )
+
+            path = f"media/{filename}"
+
+
+            await file.download_to_drive(path)
+
 
             url = (
                 "https://h6-message-sync-production.up.railway.app/"
-                f"media/{filename}"
+                + path
             )
 
+
             data = {
+
                 "auth_token": VIBER_TOKEN,
+
                 "from": "879ZbjRz2zQwAi4wLdNohQ==",
+
                 "type": "video",
+
                 "media": url,
+
                 "size": message.video.file_size,
+
                 "duration": message.video.duration
+
             }
 
 
-        # GIF Telegram приходит как animation
+
+        # ----------------
+        # GIF
+        # ----------------
+
         elif message.animation:
+
 
             file = await message.animation.get_file()
 
+
             filename = f"{message.message_id}.gif"
 
-            await file.download_to_drive(
-                f"media/{filename}"
-            )
+
+            path = f"media/{filename}"
+
+
+            await file.download_to_drive(path)
+
+
 
             url = (
                 "https://h6-message-sync-production.up.railway.app/"
-                f"media/{filename}"
+                + path
             )
 
+
             data = {
+
                 "auth_token": VIBER_TOKEN,
+
                 "from": "879ZbjRz2zQwAi4wLdNohQ==",
-                "type": "url",
-                "text": text,
-                "media": url
+
+                "type": "file",
+
+                "media": url,
+
+                "size": message.animation.file_size,
+
+                "file_name": filename
+
             }
 
 
-        # Если пока не умеем
+
+        # ----------------
+        # Стикер
+        # ----------------
+
+        elif message.sticker:
+
+
+            file = await message.sticker.get_file()
+
+
+            filename = f"{message.message_id}.webp"
+
+
+            path = f"media/{filename}"
+
+
+            await file.download_to_drive(path)
+
+
+            url = (
+                "https://h6-message-sync-production.up.railway.app/"
+                + path
+            )
+
+
+            data = {
+
+                "auth_token": VIBER_TOKEN,
+
+                "from": "879ZbjRz2zQwAi4wLdNohQ==",
+
+                "type": "picture",
+
+                "text": "",
+
+                "media": url
+
+            }
+
+
+
+        # ----------------
+        # Обычный текст
+        # ----------------
+
         else:
 
+
+            if not text:
+
+                return
+
+
             data = {
+
                 "auth_token": VIBER_TOKEN,
+
                 "from": "879ZbjRz2zQwAi4wLdNohQ==",
+
                 "type": "text",
+
                 "text": text
+
             }
+
 
 
         response = requests.post(
+
             "https://chatapi.viber.com/pa/post",
+
             json=data,
+
             timeout=20
+
         )
 
 
         print(
-            f"TG → Viber | "
-            f"{response.status_code} | "
-            f"{response.text}"
+            f"TG → Viber | {response.status_code} | {response.text}"
         )
+
 
 
     except Exception as e:
@@ -284,7 +462,6 @@ async def send_to_viber(message):
         print(
             f"ОШИБКА MEDIA: {e}"
         )
-
 
 
 async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
