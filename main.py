@@ -198,25 +198,25 @@ async def send_to_viber(message):
 
     try:
 
-text = message.text or message.caption or ""
+        text = message.text or message.caption or ""
 
-if message.media_group_id:
+        if message.media_group_id:
 
-    group_id = message.media_group_id
+            group_id = message.media_group_id
 
-    if group_id not in albums:
+            if group_id not in albums:
 
-        albums[group_id] = []
+                albums[group_id] = []
 
-        album_tasks[group_id] = asyncio.create_task(
-            send_album(group_id)
-        )
+                album_tasks[group_id] = asyncio.create_task(
+                    send_album(group_id)
+                )
 
-    albums[group_id].append(message)
+            albums[group_id].append(message)
 
-    return
+            return
 
-base_url = "https://h6-message-sync-production.up.railway.app/media/"
+        base_url = "https://h6-message-sync-production.up.railway.app/media/"
 
 
         # ----------------
@@ -432,33 +432,21 @@ base_url = "https://h6-message-sync-production.up.railway.app/media/"
 
             file = await message.sticker.get_file()
 
+            file = await message.sticker.get_file()
 
-            filename = f"{uuid.uuid4()}.png"
+                temp = f"media/{uuid.uuid4()}.webp"
+                await file.download_to_drive(temp)
 
-            path = f"media/{filename}"
+                img = Image.open(temp)
 
+                filename = f"{uuid.uuid4()}.png"
+                path = f"media/{filename}"
 
-            await file.download_to_drive(path)
-
-
-
-              temp = f"media/{uuid.uuid4()}.webp"
-
-await file.download_to_drive(temp)
-
-img = Image.open(temp)
-
-filename = f"{uuid.uuid4()}.png"
-
-path = f"media/{filename}"
-
-img.save(path, "PNG")
-
-os.remove(temp) 
-
-
-
-            data = {
+                img.save(path, "PNG")
+                os.remove(temp)
+          
+      
+        data = {
 
                 "auth_token": VIBER_TOKEN,
 
