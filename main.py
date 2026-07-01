@@ -3,6 +3,7 @@ import requests
 import threading
 import asyncio
 import uuid
+import subprocess
 
 from PIL import Image
 from moviepy import VideoFileClip
@@ -34,6 +35,7 @@ if not VIBER_TOKEN:
 web = Flask(__name__)
 MEDIA_FOLDER = "media"
 albums = {}
+album_tasks = {}
 Path(MEDIA_FOLDER).mkdir(exist_ok=True)
 
 
@@ -177,11 +179,41 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --------------------
 # Telegram Bot
 # --------------------
+async def send_album(group_id):
+
+    await asyncio.sleep(10)
+
+    if group_id not in albums:
+        return
+
+    messages = albums.pop(group_id)
+
+    album_tasks.pop(group_id, None)
+
+    for msg in messages:
+        await send_to_viber(msg)
+
+
 async def send_to_viber(message):
 
     try:
 
         text = message.text or message.caption or ""
+        if message.media_group_id:
+
+    group_id = message.media_group_id
+
+    if group_id not in albums:
+
+        albums[group_id] = []
+
+        album_tasks[group_id] = asyncio.create_task(
+            send_album(group_id)
+        )
+
+    albums[group_id].append(message)
+
+    return
 
 
         base_url = "https://h6-message-sync-production.up.railway.app/media/"
@@ -401,7 +433,7 @@ async def send_to_viber(message):
             file = await message.sticker.get_file()
 
 
-            filename = f"{uuid.uuid4()}.webp"
+            filename = f"{uuid.uuid4()}.png"
 
             path = f"media/{filename}"
 
@@ -410,11 +442,19 @@ async def send_to_viber(message):
 
 
 
-            img = Image.open(path)
+              temp = f"media/{uuid.uuid4()}.webp"
 
-            img.thumbnail((512,512))
+await file.download_to_drive(temp)
 
-            img.save(path)
+img = Image.open(temp)
+
+filename = f"{uuid.uuid4()}.png"
+
+path = f"media/{filename}"
+
+img.save(path, "PNG")
+
+os.remove(temp) 
 
 
 
@@ -468,6 +508,18 @@ async def send_to_viber(message):
 
         )
 
+if text and data["type"] != "text":
+
+    requests.post(
+        "https://chatapi.viber.com/pa/post",
+        json={
+            "auth_token": VIBER_TOKEN,
+            "from": "879ZbjRz2zQwAi4wLdNohQ==",
+            "type": "text",
+            "text": text
+        },
+        timeout=30
+    )
 
         print(
             f"TG → Viber | {response.status_code} | {response.text}"
