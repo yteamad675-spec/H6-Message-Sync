@@ -173,38 +173,34 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Telegram Bot
 # --------------------
 async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-await send_to_viber(message)
+
+    if update.channel_post:
+        await send_to_viber(update.channel_post)
 
 async def send_to_viber(message):
 
     try:
 
-        chat = update.effective_chat
+        text = message.text or message.caption or "[Без текста]"
 
-        if update.channel_post:
+        data = {
+            "auth_token": VIBER_TOKEN,
+            "from": "879ZbjRz2zQwAi4wLdNohQ==",
+            "type": "text",
+            "text": text
+        }
 
-            message = update.channel_post
+        response = requests.post(
+            "https://chatapi.viber.com/pa/post",
+            json=data,
+            timeout=20
+        )
 
-            text = message.text or message.caption or "[Без текста]"
-
-            data = {
-                "auth_token": VIBER_TOKEN,
-                "from": "879ZbjRz2zQwAi4wLdNohQ==",
-                "type": "text",
-                "text": text
-            }
-
-            response = requests.post(
-                "https://chatapi.viber.com/pa/post",
-                json=data,
-                timeout=20
-            )
-
-            print(
-                f"TG → Viber | "
-                f"{response.status_code} | "
-                f"{response.text}"
-            )
+        print(
+            f"TG → Viber | "
+            f"{response.status_code} | "
+            f"{response.text}"
+        )
 
     except Exception as e:
 
