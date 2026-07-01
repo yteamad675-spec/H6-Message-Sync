@@ -202,7 +202,7 @@ async def send_to_viber(message):
         
         if message.media_group_id:
 
-    group_id = message.media_group_id
+        group_id = message.media_group_id
 
     if group_id not in albums:
 
