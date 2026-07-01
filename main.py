@@ -2,7 +2,7 @@ import os
 import requests
 import threading
 
-from flask import Flask
+from flask import Flask, send_from_directory
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -27,11 +27,17 @@ if not VIBER_TOKEN:
 # --------------------
 
 web = Flask(__name__)
+MEDIA_FOLDER = "media"
 
 
 @web.route("/")
 def home():
-    return "N6 Sync Online", 200
+    return "H6 Sync Online", 200
+
+
+@web.route("/media/<path:filename>")
+def media(filename):
+    return send_from_directory(MEDIA_FOLDER, filename)
 
 
 @web.route("/webhook", methods=["GET", "POST"])
