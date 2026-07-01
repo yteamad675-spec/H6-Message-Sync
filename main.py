@@ -278,6 +278,68 @@ async def send_to_viber(message):
             }
 
 
+        # ----------------
+        # Голосовое
+        # ----------------
+
+        elif message.voice:
+
+            file = await message.voice.get_file()
+
+            filename = f"{uuid.uuid4()}.ogg"
+
+            path = f"media/{filename}"
+
+            await file.download_to_drive(path)
+
+            data = {
+
+                "auth_token": VIBER_TOKEN,
+
+                "from": "879ZbjRz2zQwAi4wLdNohQ==",
+
+                "type": "file",
+
+                "media": base_url + filename,
+
+                "size": message.voice.file_size,
+
+                "file_name": "voice.ogg"
+
+            }
+
+
+
+        # ----------------
+        # Кружок
+        # ----------------
+
+        elif message.video_note:
+
+            file = await message.video_note.get_file()
+
+            filename = f"{uuid.uuid4()}.mp4"
+
+            path = f"media/{filename}"
+
+            await file.download_to_drive(path)
+
+            data = {
+
+                "auth_token": VIBER_TOKEN,
+
+                "from": "879ZbjRz2zQwAi4wLdNohQ==",
+
+                "type": "video",
+
+                "media": base_url + filename,
+
+                "size": message.video_note.file_size,
+
+                "duration": message.video_note.duration
+
+            }
+
 
 
         # ----------------
