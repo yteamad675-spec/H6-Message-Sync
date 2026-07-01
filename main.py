@@ -172,23 +172,98 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --------------------
 # Telegram Bot
 # --------------------
-async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    if update.channel_post:
-        await send_to_viber(update.channel_post)
-
 async def send_to_viber(message):
 
     try:
 
         text = message.text or message.caption or "[Без текста]"
 
-        data = {
-            "auth_token": VIBER_TOKEN,
-            "from": "879ZbjRz2zQwAi4wLdNohQ==",
-            "type": "text",
-            "text": text
-        }
+        # Фото
+        if message.photo:
+
+            file = await message.photo[-1].get_file()
+
+            filename = f"{message.message_id}.jpg"
+
+            await file.download_to_drive(
+                f"media/{filename}"
+            )
+
+            url = (
+                "https://h6-message-sync-production.up.railway.app/"
+                f"media/{filename}"
+            )
+
+            data = {
+                "auth_token": VIBER_TOKEN,
+                "from": "879ZbjRz2zQwAi4wLdNohQ==",
+                "type": "picture",
+                "text": text,
+                "media": url
+            }
+
+
+        # Видео
+        elif message.video:
+
+            file = await message.video.get_file()
+
+            filename = f"{message.message_id}.mp4"
+
+            await file.download_to_drive(
+                f"media/{filename}"
+            )
+
+            url = (
+                "https://h6-message-sync-production.up.railway.app/"
+                f"media/{filename}"
+            )
+
+            data = {
+                "auth_token": VIBER_TOKEN,
+                "from": "879ZbjRz2zQwAi4wLdNohQ==",
+                "type": "video",
+                "media": url,
+                "size": message.video.file_size,
+                "duration": message.video.duration
+            }
+
+
+        # GIF Telegram приходит как animation
+        elif message.animation:
+
+            file = await message.animation.get_file()
+
+            filename = f"{message.message_id}.gif"
+
+            await file.download_to_drive(
+                f"media/{filename}"
+            )
+
+            url = (
+                "https://h6-message-sync-production.up.railway.app/"
+                f"media/{filename}"
+            )
+
+            data = {
+                "auth_token": VIBER_TOKEN,
+                "from": "879ZbjRz2zQwAi4wLdNohQ==",
+                "type": "url",
+                "text": text,
+                "media": url
+            }
+
+
+        # Если пока не умеем
+        else:
+
+            data = {
+                "auth_token": VIBER_TOKEN,
+                "from": "879ZbjRz2zQwAi4wLdNohQ==",
+                "type": "text",
+                "text": text
+            }
+
 
         response = requests.post(
             "https://chatapi.viber.com/pa/post",
@@ -196,15 +271,29 @@ async def send_to_viber(message):
             timeout=20
         )
 
+
         print(
             f"TG → Viber | "
             f"{response.status_code} | "
             f"{response.text}"
         )
 
+
     except Exception as e:
 
-        print(f"ОШИБКА CHANNEL_POST: {e}")
+        print(
+            f"ОШИБКА MEDIA: {e}"
+        )
+
+
+
+async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.channel_post:
+
+        await send_to_viber(
+            update.channel_post
+        )
 
 app = Application.builder().token(BOT_TOKEN).build()
 
