@@ -247,6 +247,38 @@ async def send_to_viber(message):
             }
 
 
+        # ----------------
+        # Документ
+        # ----------------
+
+        elif message.document:
+
+            file = await message.document.get_file()
+
+            filename = message.document.file_name or f"{uuid.uuid4()}"
+
+            path = f"media/{filename}"
+
+            await file.download_to_drive(path)
+
+            data = {
+
+                "auth_token": VIBER_TOKEN,
+
+                "from": "879ZbjRz2zQwAi4wLdNohQ==",
+
+                "type": "file",
+
+                "media": base_url + filename,
+
+                "size": message.document.file_size,
+
+                "file_name": filename
+
+            }
+
+
+
 
         # ----------------
         # GIF → MP4
