@@ -198,11 +198,11 @@ async def send_to_viber(message):
 
     try:
 
-        text = message.text or message.caption or ""
-        
-        if message.media_group_id:
+text = message.text or message.caption or ""
 
-        group_id = message.media_group_id
+if message.media_group_id:
+
+    group_id = message.media_group_id
 
     if group_id not in albums:
 
@@ -216,8 +216,7 @@ async def send_to_viber(message):
 
     return
 
-
-        base_url = "https://h6-message-sync-production.up.railway.app/media/"
+base_url = "https://h6-message-sync-production.up.railway.app/media/"
 
 
         # ----------------
