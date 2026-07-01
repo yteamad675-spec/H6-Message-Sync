@@ -173,6 +173,9 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Telegram Bot
 # --------------------
 async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
+await send_to_viber(message)
+
+async def send_to_viber(message):
 
     try:
 
