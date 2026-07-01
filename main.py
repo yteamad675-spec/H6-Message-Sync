@@ -199,6 +199,7 @@ async def send_to_viber(message):
     try:
 
         text = message.text or message.caption or ""
+        
         if message.media_group_id:
 
     group_id = message.media_group_id
