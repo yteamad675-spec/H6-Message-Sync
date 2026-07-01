@@ -2,7 +2,10 @@ import os
 import requests
 import threading
 import asyncio
+import uuid
 
+from PIL import Image
+from moviepy import VideoFileClip
 from flask import Flask, send_from_directory
 from telegram import Update
 from pathlib import Path
@@ -181,109 +184,35 @@ async def send_to_viber(message):
         text = message.text or message.caption or ""
 
 
+        base_url = "https://h6-message-sync-production.up.railway.app/media/"
+
+
         # ----------------
-        # Фото альбомы
+        # Фото
         # ----------------
 
         if message.photo:
 
-            group_id = message.media_group_id
+            file = await message.photo[-1].get_file()
+
+            filename = f"{uuid.uuid4()}.jpg"
+
+            path = f"media/{filename}"
+
+            await file.download_to_drive(path)
 
 
-            if group_id:
+            data = {
 
-                if group_id not in albums:
-                    albums[group_id] = []
+                "auth_token": VIBER_TOKEN,
 
+                "from": "879ZbjRz2zQwAi4wLdNohQ==",
 
-                file = await message.photo[-1].get_file()
+                "type": "picture",
 
-                filename = f"{message.message_id}.jpg"
+                "media": base_url + filename
 
-                path = f"media/{filename}"
-
-
-                await file.download_to_drive(path)
-
-
-                albums[group_id].append(path)
-
-
-                # ждём остальные фото
-                await asyncio.sleep(2)
-
-
-                photos = albums.pop(group_id)
-
-
-                for photo in photos:
-
-                    url = (
-                        "https://h6-message-sync-production.up.railway.app/"
-                        + photo
-                    )
-
-
-                    data = {
-
-                        "auth_token": VIBER_TOKEN,
-
-                        "from": "879ZbjRz2zQwAi4wLdNohQ==",
-
-                        "type": "picture",
-
-                        "text": text,
-
-                        "media": url
-
-                    }
-
-
-                    requests.post(
-
-                        "https://chatapi.viber.com/pa/post",
-
-                        json=data
-
-                    )
-
-
-                return
-
-
-            else:
-
-
-                file = await message.photo[-1].get_file()
-
-                filename = f"{message.message_id}.jpg"
-
-                path = f"media/{filename}"
-
-
-                await file.download_to_drive(path)
-
-
-                url = (
-                    "https://h6-message-sync-production.up.railway.app/"
-                    + path
-                )
-
-
-                data = {
-
-                    "auth_token": VIBER_TOKEN,
-
-                    "from": "879ZbjRz2zQwAi4wLdNohQ==",
-
-                    "type": "picture",
-
-                    "text": text,
-
-                    "media": url
-
-                }
-
+            }
 
 
         # ----------------
@@ -292,23 +221,13 @@ async def send_to_viber(message):
 
         elif message.video:
 
-
             file = await message.video.get_file()
 
-
-            filename = f"{message.message_id}.mp4"
-
+            filename = f"{uuid.uuid4()}.mp4"
 
             path = f"media/{filename}"
 
-
             await file.download_to_drive(path)
-
-
-            url = (
-                "https://h6-message-sync-production.up.railway.app/"
-                + path
-            )
 
 
             data = {
@@ -319,7 +238,7 @@ async def send_to_viber(message):
 
                 "type": "video",
 
-                "media": url,
+                "media": base_url + filename,
 
                 "size": message.video.file_size,
 
@@ -330,29 +249,38 @@ async def send_to_viber(message):
 
 
         # ----------------
-        # GIF
+        # GIF → MP4
         # ----------------
 
         elif message.animation:
 
 
-            file = await message.animation.get_file()
+            gif = await message.animation.get_file()
 
 
-            filename = f"{message.message_id}.gif"
+            gif_name = f"{uuid.uuid4()}.gif"
+
+            gif_path = f"media/{gif_name}"
 
 
-            path = f"media/{filename}"
-
-
-            await file.download_to_drive(path)
+            await gif.download_to_drive(gif_path)
 
 
 
-            url = (
-                "https://h6-message-sync-production.up.railway.app/"
-                + path
+            mp4_name = gif_name.replace(".gif",".mp4")
+
+            mp4_path = f"media/{mp4_name}"
+
+
+            clip = VideoFileClip(gif_path)
+
+            clip.write_videofile(
+                mp4_path,
+                logger=None
             )
+
+            clip.close()
+
 
 
             data = {
@@ -361,13 +289,9 @@ async def send_to_viber(message):
 
                 "from": "879ZbjRz2zQwAi4wLdNohQ==",
 
-                "type": "file",
+                "type": "video",
 
-                "media": url,
-
-                "size": message.animation.file_size,
-
-                "file_name": filename
+                "media": base_url + mp4_name
 
             }
 
@@ -383,8 +307,7 @@ async def send_to_viber(message):
             file = await message.sticker.get_file()
 
 
-            filename = f"{message.message_id}.webp"
-
+            filename = f"{uuid.uuid4()}.webp"
 
             path = f"media/{filename}"
 
@@ -392,10 +315,13 @@ async def send_to_viber(message):
             await file.download_to_drive(path)
 
 
-            url = (
-                "https://h6-message-sync-production.up.railway.app/"
-                + path
-            )
+
+            img = Image.open(path)
+
+            img.thumbnail((512,512))
+
+            img.save(path)
+
 
 
             data = {
@@ -406,24 +332,17 @@ async def send_to_viber(message):
 
                 "type": "picture",
 
-                "text": "",
-
-                "media": url
+                "media": base_url + filename
 
             }
 
 
 
         # ----------------
-        # Обычный текст
+        # Текст
         # ----------------
 
-        else:
-
-
-            if not text:
-
-                return
+        elif text:
 
 
             data = {
@@ -439,6 +358,11 @@ async def send_to_viber(message):
             }
 
 
+        else:
+
+            return
+
+
 
         response = requests.post(
 
@@ -446,7 +370,7 @@ async def send_to_viber(message):
 
             json=data,
 
-            timeout=20
+            timeout=30
 
         )
 
@@ -454,7 +378,6 @@ async def send_to_viber(message):
         print(
             f"TG → Viber | {response.status_code} | {response.text}"
         )
-
 
 
     except Exception as e:
