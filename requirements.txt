@@ -1,3 +1,5 @@
 python-telegram-bot==22.1
 requests
 flask
+moviepy
+pillow
