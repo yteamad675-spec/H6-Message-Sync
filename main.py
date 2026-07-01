@@ -174,10 +174,25 @@ async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             message = update.channel_post
 
+            text = message.text or message.caption or "[Без текста]"
+
+            data = {
+                "auth_token": VIBER_TOKEN,
+                "from": "879ZbjRz2zQwAi4wLdNohQ==",
+                "type": "text",
+                "text": text
+            }
+
+            response = requests.post(
+                "https://chatapi.viber.com/pa/post",
+                json=data,
+                timeout=20
+            )
+
             print(
-                f"КАНАЛ: {chat.title} | "
-                f"ID: {chat.id} | "
-                f"ТЕКСТ: {message.text}"
+                f"TG → Viber | "
+                f"{response.status_code} | "
+                f"{response.text}"
             )
 
     except Exception as e:
