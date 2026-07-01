@@ -4,6 +4,7 @@ import threading
 
 from flask import Flask, send_from_directory
 from telegram import Update
+from pathlib import Path
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -28,6 +29,7 @@ if not VIBER_TOKEN:
 
 web = Flask(__name__)
 MEDIA_FOLDER = "media"
+Path(MEDIA_FOLDER).mkdir(exist_ok=True)
 
 
 @web.route("/")
