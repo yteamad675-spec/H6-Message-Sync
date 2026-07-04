@@ -1,26 +1,10 @@
 import os
-import requests
 import threading
-import asyncio
-import uuid
-import subprocess
-
-from PIL import Image
-from moviepy import VideoFileClip
-
-from flask import Flask, send_from_directory
-
-from telegram import Update
 
 from pathlib import Path
+from flask import Flask, send_from_directory
 
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    MessageHandler,
-    ContextTypes,
-    filters
-)
+from telegram_sync import run as telegram_run
 
 
 # --------------------
@@ -78,4 +62,4 @@ threading.Thread(
     daemon=True
 ).start()
 
-app.run_polling()
+telegram_run()
