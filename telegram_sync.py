@@ -452,25 +452,11 @@ def setup_telegram(app):
 # Запуск приложения
 # --------------------
 
-from telegram.ext import Application
 
+def run():
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+    app = Application.builder().token(BOT_TOKEN).build()
 
+    setup_telegram(app)
 
-if not BOT_TOKEN:
-
-    raise ValueError(
-        "BOT_TOKEN не найден"
-    )
-
-
-app = Application.builder().token(
-    BOT_TOKEN
-).build()
-
-
-setup_telegram(app)
-
-
-app.run_polling()
+    app.run_polling()
