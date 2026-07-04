@@ -70,27 +70,6 @@ def run_web():
 
 
 # --------------------
-# Telegram
-# --------------------
-
-app = Application.builder().token(BOT_TOKEN).build()
-
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("testviber", testviber))
-app.add_handler(CommandHandler("testaccount", testaccount))
-app.add_handler(CommandHandler("setwebhook", setwebhook))
-app.add_handler(CommandHandler("viber", viber))
-app.add_handler(CommandHandler("tasks", tasks))
-
-app.add_handler(
-    MessageHandler(
-        filters.ALL,
-        channel_post
-    )
-)
-
-
-# --------------------
 # Запуск
 # --------------------
 
