@@ -5,7 +5,14 @@ import uuid
 from pathlib import Path
 
 from telegram import Update
-from telegram.ext import ContextTypes
+
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters
+)
 
 from viber_sync import (
     VIBER_TOKEN,
