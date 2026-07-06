@@ -63,7 +63,7 @@ async def send_album(group_id):
 
     for message in messages:
 
-        await send_to_viber(message)
+    await process_message(message)
 
 
 # --------------------
