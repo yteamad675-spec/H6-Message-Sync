@@ -7,7 +7,7 @@ from pathlib import Path
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from viber_sinc import (
+from viber_sync import (
     VIBER_TOKEN,
     send_to_viber
 )
