@@ -62,8 +62,8 @@ async def send_album(group_id):
     album_tasks.pop(group_id, None)
 
     for message in messages:
-
-    await process_message(message)
+        
+    await send_to_viber(message)
 
 
 # --------------------
