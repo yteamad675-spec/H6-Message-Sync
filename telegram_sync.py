@@ -61,9 +61,21 @@ async def send_album(group_id):
 
     album_tasks.pop(group_id, None)
 
-    for message in messages:
+    for i, message in enumerate(messages):
 
-        await process_message(message)
+        await process_message(
+            message,
+            send_caption=False
+        )
+
+    caption = messages[0].caption
+
+    if caption:
+
+        await send_to_viber({
+            "type": "text",
+            "text": caption
+        })
         
 
 # --------------------
@@ -253,7 +265,7 @@ async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Подготовка сообщения
 # --------------------
 
-async def process_message(message):
+async def process_message(message, send_caption=True):
 
     text = message.text or message.caption or ""
 
@@ -390,7 +402,10 @@ async def process_message(message):
     else:
         return
 
-    await send_to_viber(data)
+    if not send_caption:
+    data["text"] = ""
+
+await send_to_viber(data)
 
 
 # --------------------
