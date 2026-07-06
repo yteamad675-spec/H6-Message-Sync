@@ -8,6 +8,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from viber_sinc import (
+    VIBER_TOKEN,
     send_to_viber
 )
 
@@ -80,8 +81,6 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def testviber(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    from viber import VIBER_TOKEN
-
     import requests
 
     try:
@@ -116,8 +115,6 @@ async def testviber(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def testaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    from viber import VIBER_TOKEN
 
     import requests
 
@@ -156,8 +153,6 @@ async def testaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def setwebhook(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    from viber import VIBER_TOKEN
-
     import requests
 
     response = requests.post(
@@ -183,7 +178,7 @@ async def setwebhook(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def viber(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    from viber import send_text
+    from viber_sync import send_to_viber
 
     text = " ".join(context.args)
 
