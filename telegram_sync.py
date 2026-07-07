@@ -403,7 +403,7 @@ async def process_message(message, send_caption=True):
         return
 
     if not send_caption:
-    data["text"] = ""
+        data["text"] = ""
 
 await send_to_viber(data)
 
