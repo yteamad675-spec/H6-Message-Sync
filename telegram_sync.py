@@ -356,18 +356,18 @@ async def process_message(message, send_caption=True):
         ogg_path = f"{MEDIA_FOLDER}/{ogg_filename}"
         mp3_path = f"{MEDIA_FOLDER}/{mp3_filename}"
 
-    await file.download_to_drive(ogg_path)
+        await file.download_to_drive(ogg_path)
 
-    subprocess.run(
-        [
-            "ffmpeg",
-            "-y",
-            "-i",
-            ogg_path,
-            mp3_path
-        ],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                ogg_path,
+                mp3_path
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
     )
 
     os.remove(ogg_path)
