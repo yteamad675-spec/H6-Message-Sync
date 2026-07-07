@@ -2,6 +2,7 @@ import os
 import asyncio
 import uuid
 import subprocess
+import imageio_ffmpeg
 
 from pathlib import Path
 
