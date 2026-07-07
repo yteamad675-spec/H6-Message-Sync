@@ -5,7 +5,7 @@ import uuid
 import asyncio
 
 from PIL import Image
-from moviepy import VideoFileClip
+from moviepy import VideoFileClip, AudioFileClip, ColorClip
 
 
 VIBER_TOKEN = os.getenv(
