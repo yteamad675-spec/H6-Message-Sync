@@ -437,13 +437,13 @@ async def process_message(message, send_caption=True):
 
     else:
 
-    data["type"] = "text"
+        data["type"] = "text"
 
-    data["text"] = (
-        "⚠️ Этот тип сообщения пока не поддерживается Viber.\n\n"
-        "Посмотреть его можно в Telegram:\n"
-        "https://t.me/H6_team"
-    )
+        data["text"] = (
+            "⚠️ Этот тип сообщения пока не поддерживается Viber.\n\n"
+            "Посмотреть его можно в Telegram:\n"
+            "https://t.me/H6_team"
+        )
 
     if not send_caption:
         data["text"] = ""
