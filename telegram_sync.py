@@ -358,9 +358,11 @@ async def process_message(message, send_caption=True):
 
         await file.download_to_drive(ogg_path)
 
+        ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+
         subprocess.run(
             [
-                "ffmpeg",
+                ffmpeg,
                 "-y",
                 "-i",
                 ogg_path,
