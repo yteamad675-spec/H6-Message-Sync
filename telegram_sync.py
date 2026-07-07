@@ -348,13 +348,13 @@ async def process_message(message, send_caption=True):
 
     elif message.voice:
 
-    file = await message.voice.get_file()
+        file = await message.voice.get_file()
 
-    ogg_filename = f"{uuid.uuid4()}.ogg"
-    mp3_filename = f"{uuid.uuid4()}.mp3"
+        ogg_filename = f"{uuid.uuid4()}.ogg"
+        mp3_filename = f"{uuid.uuid4()}.mp3"
 
-    ogg_path = f"{MEDIA_FOLDER}/{ogg_filename}"
-    mp3_path = f"{MEDIA_FOLDER}/{mp3_filename}"
+        ogg_path = f"{MEDIA_FOLDER}/{ogg_filename}"
+        mp3_path = f"{MEDIA_FOLDER}/{mp3_filename}"
 
     await file.download_to_drive(ogg_path)
 
