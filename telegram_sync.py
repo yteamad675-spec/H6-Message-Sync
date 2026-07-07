@@ -8,6 +8,8 @@ from pathlib import Path
 
 from telegram import Update
 
+from moviepy import VideoFileClip, AudioFileClip, ColorClip
+
 from telegram.ext import (
     Application,
     CommandHandler,
