@@ -353,33 +353,49 @@ async def process_message(message, send_caption=True):
 
         ogg_filename = f"{uuid.uuid4()}.ogg"
         mp3_filename = f"{uuid.uuid4()}.mp3"
+        mp4_filename = f"{uuid.uuid4()}.mp4"
 
         ogg_path = f"{MEDIA_FOLDER}/{ogg_filename}"
         mp3_path = f"{MEDIA_FOLDER}/{mp3_filename}"
+        mp4_path = f"{MEDIA_FOLDER}/{mp4_filename}"
 
         await file.download_to_drive(ogg_path)
 
-        ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
-
-        subprocess.run(
-            [
-                ffmpeg,
-                "-y",
-                "-i",
-                ogg_path,
-                mp3_path
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+        AudioFileClip(ogg_path).write_audiofile(
+            mp3_path,
+            logger=None
         )
 
-        os.remove(ogg_path)
+        audio = AudioFileClip(mp3_path)
 
-        data["type"] = "voice"
-        data["path"] = mp3_path
-        data["filename"] = mp3_filename
-        data["size"] = os.path.getsize(mp3_path)
-        data["duration"] = message.voice.duration
+        video = ColorClip(
+            size=(320, 240),
+            color=(0, 0, 0),
+            duration=audio.duration
+        )
+
+        video = video.with_audio(audio)
+
+        video.write_videofile(
+            mp4_path,
+            fps=15,
+            codec="libx264",
+            audio_codec="aac",
+            preset="ultrafast",
+            logger=None
+         )
+
+        audio.close()
+        video.close()
+
+        os.remove(ogg_path)
+        os.remove(mp3_path)
+
+        data["type"] = "video"
+        data["path"] = mp4_path
+        data["filename"] = mp4_filename
+        data["size"] = os.path.getsize(mp4_path)
+        data["duration"] = int(message.voice.duration)
 
 
     elif message.video_note:
@@ -420,7 +436,14 @@ async def process_message(message, send_caption=True):
 
 
     else:
-        return
+
+    data["type"] = "text"
+
+    data["text"] = (
+        "⚠️ Этот тип сообщения пока не поддерживается Viber.\n\n"
+        "Посмотреть его можно в Telegram:\n"
+        "https://t.me/H6_team"
+    )
 
     if not send_caption:
         data["text"] = ""
