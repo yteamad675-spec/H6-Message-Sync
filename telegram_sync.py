@@ -405,7 +405,7 @@ async def process_message(message, send_caption=True):
     if not send_caption:
         data["text"] = ""
 
-await send_to_viber(data)
+    await send_to_viber(data)
 
 
 # --------------------
