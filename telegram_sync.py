@@ -1,6 +1,7 @@
 import os
 import asyncio
 import uuid
+import subprocess
 
 from pathlib import Path
 
@@ -347,19 +348,35 @@ async def process_message(message, send_caption=True):
 
     elif message.voice:
 
-        file = await message.voice.get_file()
+    file = await message.voice.get_file()
 
-        filename = f"{uuid.uuid4()}.ogg"
+    ogg_filename = f"{uuid.uuid4()}.ogg"
+    mp3_filename = f"{uuid.uuid4()}.mp3"
 
-        path = f"{MEDIA_FOLDER}/{filename}"
+    ogg_path = f"{MEDIA_FOLDER}/{ogg_filename}"
+    mp3_path = f"{MEDIA_FOLDER}/{mp3_filename}"
 
-        await file.download_to_drive(path)
+    await file.download_to_drive(ogg_path)
 
-        data["type"] = "voice"
-        data["path"] = path
-        data["filename"] = filename
-        data["size"] = message.voice.file_size
-        data["duration"] = message.voice.duration
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            ogg_path,
+            mp3_path
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL
+    )
+
+    os.remove(ogg_path)
+
+    data["type"] = "voice"
+    data["path"] = mp3_path
+    data["filename"] = mp3_filename
+    data["size"] = os.path.getsize(mp3_path)
+    data["duration"] = message.voice.duration
 
 
     elif message.video_note:
