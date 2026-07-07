@@ -368,15 +368,15 @@ async def process_message(message, send_caption=True):
             ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
-    )
+        )
 
-    os.remove(ogg_path)
+        os.remove(ogg_path)
 
-    data["type"] = "voice"
-    data["path"] = mp3_path
-    data["filename"] = mp3_filename
-    data["size"] = os.path.getsize(mp3_path)
-    data["duration"] = message.voice.duration
+        data["type"] = "voice"
+        data["path"] = mp3_path
+        data["filename"] = mp3_filename
+        data["size"] = os.path.getsize(mp3_path)
+        data["duration"] = message.voice.duration
 
 
     elif message.video_note:
