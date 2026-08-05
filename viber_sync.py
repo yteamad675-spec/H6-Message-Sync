@@ -17,7 +17,7 @@ VIBER_ID = "879ZbjRz2zQwAi4wLdNohQ=="
 
 
 MEDIA_URL = (
-    "https://h6-message-sync.onrender.com"
+    "https://h6-message-sync.onrender.com/media/"
 )
 
 
