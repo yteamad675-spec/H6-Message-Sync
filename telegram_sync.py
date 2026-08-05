@@ -40,7 +40,7 @@ if not BOT_TOKEN:
 
 MEDIA_FOLDER = "media"
 
-BASE_URL = "https://h6-message-sync.onrender.com"
+BASE_URL = "https://h6-message-sync.onrender.com/media/"
 
 Path(MEDIA_FOLDER).mkdir(exist_ok=True)
 
@@ -194,7 +194,7 @@ async def setwebhook(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         json={
 
-            "url": "https://h6-message-sync.onrender.com",
+            "url": "https://h6-message-sync.onrender.com/webhook",
 
             "auth_token": VIBER_TOKEN
 
