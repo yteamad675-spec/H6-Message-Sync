@@ -24,6 +24,12 @@ from viber_sync import (
 )
 
 
+from discord_sync import (
+    DISCORD_WEBHOOK_URL,
+    send_to_discord
+)
+
+
 # --------------------
 # Токены
 # --------------------
@@ -77,6 +83,11 @@ async def send_album(group_id):
     if caption:
 
         await send_to_viber({
+            "type": "text",
+            "text": caption
+        })
+
+        await send_to_discord({
             "type": "text",
             "text": caption
         })
@@ -144,6 +155,49 @@ async def testviber(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text(
             f"Ошибка:\n{e}"
+        )
+
+
+async def testdiscord(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    import requests
+
+    if not DISCORD_WEBHOOK_URL:
+
+        await update.message.reply_text(
+            "DISCORD_WEBHOOK_URL is not configured"
+        )
+
+        return
+
+    try:
+
+        response = requests.post(
+
+            DISCORD_WEBHOOK_URL,
+
+            json={
+                "content": "H6 Sync Discord test"
+            },
+
+            timeout=20
+
+        )
+
+        await update.message.reply_text(
+
+            f"Discord response:\n"
+
+            f"{response.status_code}\n\n"
+
+            f"{response.text}"
+
+        )
+
+    except Exception as e:
+
+        await update.message.reply_text(
+            f"Error:\n{e}"
         )
 
 
@@ -227,7 +281,10 @@ async def viber(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         return
 
-    await send_text(text)
+        await send_to_viber({
+        "type": "text",
+        "text": text
+    })
 
     await update.message.reply_text(
         "Отправлено."
@@ -237,6 +294,32 @@ async def viber(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --------------------
 # Получение сообщений
 # --------------------
+
+async def discord(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    text = " ".join(context.args)
+
+    if not text:
+
+        await update.message.reply_text(
+
+            "Usage:\n"
+
+            "/discord Your text"
+
+        )
+
+        return
+
+    await send_to_discord({
+        "type": "text",
+        "text": text
+    })
+
+    await update.message.reply_text(
+        "Sent."
+    )
+
 
 async def channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -452,6 +535,8 @@ async def process_message(message, send_caption=True):
 
     await send_to_viber(data)
 
+    await send_to_discord(data)
+
 
 # --------------------
 # Запуск Telegram
@@ -503,6 +588,22 @@ def setup_telegram(app):
         CommandHandler(
             "tasks",
             tasks
+        )
+    )
+
+
+    app.add_handler(
+        CommandHandler(
+            "testdiscord",
+            testdiscord
+        )
+    )
+
+
+    app.add_handler(
+        CommandHandler(
+            "discord",
+            discord
         )
     )
 
