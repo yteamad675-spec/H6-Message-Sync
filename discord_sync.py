@@ -28,28 +28,28 @@ async def send_to_discord(data):
 
         if message_type == "text":
             response = requests.post(
-                DISCORD_WEBHOOK_URL,
+                f"{DISCORD_WEBHOOK_URL}?wait=true",
                 json={"content": _content(text) or " "},
                 timeout=30
             )
 
             print(f"DISCORD -> {response.status_code}")
             print(response.text)
-            return
+            return _message_data(response)
 
         path = data.get("path")
         filename = data.get("filename")
 
         if not path or not filename:
             response = requests.post(
-                DISCORD_WEBHOOK_URL,
+                f"{DISCORD_WEBHOOK_URL}?wait=true",
                 json={"content": _content(text) or "Unsupported message"},
                 timeout=30
             )
 
             print(f"DISCORD -> {response.status_code}")
             print(response.text)
-            return
+            return _message_data(response)
 
         file_path = Path(path)
 
@@ -61,7 +61,7 @@ async def send_to_discord(data):
 
             with file_path.open("rb") as upload:
                 response = requests.post(
-                    DISCORD_WEBHOOK_URL,
+                    f"{DISCORD_WEBHOOK_URL}?wait=true",
                     data={"content": _content(text) or ""},
                     files={
                         "file": (
@@ -79,13 +79,66 @@ async def send_to_discord(data):
             )
 
             response = requests.post(
-                DISCORD_WEBHOOK_URL,
+                f"{DISCORD_WEBHOOK_URL}?wait=true",
                 json={"content": content},
                 timeout=30
             )
 
         print(f"DISCORD -> {response.status_code}")
         print(response.text)
+        return _message_data(response)
 
     except Exception as e:
         print("DISCORD ERROR:", e)
+        return None
+
+
+def _message_data(response):
+    if not response.ok:
+        return None
+
+    try:
+        return response.json()
+    except ValueError:
+        return None
+
+
+async def edit_discord_message(discord_message_id, data):
+    if not DISCORD_WEBHOOK_URL or not discord_message_id:
+        return False
+
+    try:
+        text = _content(data.get("text", "")) or " "
+
+        response = requests.patch(
+            f"{DISCORD_WEBHOOK_URL}/messages/{discord_message_id}",
+            json={"content": text},
+            timeout=30
+        )
+
+        print(f"DISCORD EDIT -> {response.status_code}")
+        print(response.text)
+        return response.ok
+
+    except Exception as e:
+        print("DISCORD EDIT ERROR:", e)
+        return False
+
+
+async def delete_discord_message(discord_message_id):
+    if not DISCORD_WEBHOOK_URL or not discord_message_id:
+        return False
+
+    try:
+        response = requests.delete(
+            f"{DISCORD_WEBHOOK_URL}/messages/{discord_message_id}",
+            timeout=30
+        )
+
+        print(f"DISCORD DELETE -> {response.status_code}")
+        print(response.text)
+        return response.status_code in (200, 204)
+
+    except Exception as e:
+        print("DISCORD DELETE ERROR:", e)
+        return False
