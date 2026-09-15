@@ -4,3 +4,5 @@ flask
 moviepy
 pillow
 imageio-ffmpeg
+telethon
+discord.py
