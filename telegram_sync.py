@@ -18,12 +18,6 @@ from telegram.ext import (
     filters
 )
 
-from viber_sync import (
-    VIBER_TOKEN,
-    send_to_viber
-)
-
-
 from discord_sync import (
     DISCORD_WEBHOOK_URL,
     delete_discord_message,
@@ -94,11 +88,6 @@ async def send_album(group_id):
 
     if caption:
 
-        await send_to_viber({
-            "type": "text",
-            "text": caption
-        })
-
         await send_to_discord({
             "type": "text",
             "text": caption
@@ -115,19 +104,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         "Н6 Sync запущен.\n\n"
 
-        "/testviber - проверка токена\n"
-
         "/testdiscord - проверка Discord webhook\n"
-
-        "/testaccount - информация о канале\n"
-
-        "/viber - отправить текст\n"
 
         "/discord - отправить текст\n"
 
         "/syncdelete - ручная синхронизация удаления\n"
-
-        "/setwebhook - установить webhook\n"
 
         "/tasks - список задач"
 
@@ -139,41 +120,6 @@ async def tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Задач пока нет."
     )
-
-
-async def testviber(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    import requests
-
-    try:
-
-        response = requests.post(
-
-            "https://chatapi.viber.com/pa/get_account_info",
-
-            json={
-                "auth_token": VIBER_TOKEN
-            },
-
-            timeout=20
-
-        )
-
-        await update.message.reply_text(
-
-            f"Ответ Viber:\n"
-
-            f"{response.status_code}\n\n"
-
-            f"{response.text}"
-
-        )
-
-    except Exception as e:
-
-        await update.message.reply_text(
-            f"Ошибка:\n{e}"
-        )
 
 
 async def testdiscord(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -217,96 +163,6 @@ async def testdiscord(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f"Error:\n{e}"
         )
-
-
-async def testaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    import requests
-
-    try:
-
-        response = requests.post(
-
-            "https://chatapi.viber.com/pa/get_account_info",
-
-            json={
-                "auth_token": VIBER_TOKEN
-            },
-
-            timeout=20
-
-        )
-
-        data = response.json()
-
-        await update.message.reply_text(
-
-            f"Канал: {data.get('name')}\n"
-
-            f"Статус: {data.get('status_message')}\n"
-
-            f"Администраторов: {len(data.get('members', []))}"
-
-        )
-
-    except Exception as e:
-
-        await update.message.reply_text(
-            f"Ошибка:\n{e}"
-        )
-
-
-async def setwebhook(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    import requests
-
-    response = requests.post(
-
-        "https://chatapi.viber.com/pa/set_webhook",
-
-        json={
-
-            "url": "https://h6-message-sync.onrender.com/webhook",
-
-            "auth_token": VIBER_TOKEN
-
-        },
-
-        timeout=20
-
-    )
-
-    await update.message.reply_text(
-        response.text
-    )
-
-
-async def viber(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    from viber_sync import send_to_viber
-
-    text = " ".join(context.args)
-
-    if not text:
-
-        await update.message.reply_text(
-
-            "Использование:\n"
-
-            "/viber Ваш текст"
-
-        )
-
-        return
-
-    await send_to_viber({
-        "type": "text",
-        "text": text
-    })
-
-    await update.message.reply_text(
-        "Отправлено."
-    )
 
 
 # --------------------
@@ -576,7 +432,7 @@ async def process_message(message, send_caption=True, dispatch=True):
         data["type"] = "text"
 
         data["text"] = (
-            "⚠️ Этот тип сообщения пока не поддерживается Viber.\n\n"
+            "⚠️ Этот тип сообщения пока не поддерживается синхронизацией.\n\n"
             "Посмотреть его можно в Telegram:\n"
             "https://t.me/H6_team"
         )
@@ -586,8 +442,6 @@ async def process_message(message, send_caption=True, dispatch=True):
 
     if not dispatch:
         return data
-
-    await send_to_viber(data)
 
     existing_record = get_message_record(
         message.chat_id,
@@ -640,17 +494,6 @@ async def edited_channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE
         message.chat_id,
         message.message_id
     )
-
-    if record and record.get("source") == "discord":
-        record["telegram_edited_at"] = (
-            message.edit_date.isoformat()
-            if message.edit_date else None
-        )
-        record["type"] = data["type"]
-        record["text"] = data.get("text", "")
-        record["filename"] = data.get("filename")
-        save_message_record(record)
-        return
 
     media_changed = (
         record
@@ -715,9 +558,6 @@ async def handle_deleted_telegram_message(chat_id, message_id, deleted_at=None):
         return
 
     if record.get("discord_message_id"):
-        if record.get("source") == "discord":
-            return
-
         await delete_discord_message(
             record["discord_message_id"]
         )
@@ -733,38 +573,6 @@ def setup_telegram(app):
         CommandHandler(
             "start",
             start
-        )
-    )
-
-
-    app.add_handler(
-        CommandHandler(
-            "testviber",
-            testviber
-        )
-    )
-
-
-    app.add_handler(
-        CommandHandler(
-            "testaccount",
-            testaccount
-        )
-    )
-
-
-    app.add_handler(
-        CommandHandler(
-            "viber",
-            viber
-        )
-    )
-
-
-    app.add_handler(
-        CommandHandler(
-            "setwebhook",
-            setwebhook
         )
     )
 
