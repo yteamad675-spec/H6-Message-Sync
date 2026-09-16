@@ -148,7 +148,7 @@ async def send_to_viber(data):
         # GIF
         # ----------------
 
-        elif message_type == "gif":
+        elif message_type in ("gif", "animation"):
 
 
             payload = {
