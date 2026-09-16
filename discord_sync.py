@@ -43,7 +43,7 @@ async def send_to_discord(data):
         if not path or not filename:
             response = requests.post(
                 f"{DISCORD_WEBHOOK_URL}?wait=true",
-                json={"content": _content(text) or "Unsupported message"},
+                json={"content": _content(text) or _telegram_fallback_text()},
                 timeout=30
             )
 
@@ -59,19 +59,23 @@ async def send_to_discord(data):
                 or "application/octet-stream"
             )
 
-            with file_path.open("rb") as upload:
-                response = requests.post(
-                    f"{DISCORD_WEBHOOK_URL}?wait=true",
-                    data={"content": _content(text) or ""},
-                    files={
-                        "file": (
-                            filename,
-                            upload,
-                            content_type
-                        )
-                    },
-                    timeout=60
-                )
+            try:
+                with file_path.open("rb") as upload:
+                    response = requests.post(
+                        f"{DISCORD_WEBHOOK_URL}?wait=true",
+                        data={"content": _content(text) or ""},
+                        files={
+                            "file": (
+                                filename,
+                                upload,
+                                content_type
+                            )
+                        },
+                        timeout=60
+                    )
+            except Exception as e:
+                print("DISCORD FILE SEND ERROR:", e)
+                return await send_discord_fallback(text)
         else:
             file_url = MEDIA_URL + filename
             content = "\n".join(
@@ -86,11 +90,17 @@ async def send_to_discord(data):
 
         print(f"DISCORD -> {response.status_code}")
         print(response.text)
-        return _message_data(response)
+        if response.ok:
+            return _message_data(response)
+
+        return await send_discord_fallback(text)
 
     except Exception as e:
         print("DISCORD ERROR:", e)
-        return None
+        return await send_discord_fallback(
+            data.get("text", "")
+            if data else ""
+        )
 
 
 def _message_data(response):
@@ -142,3 +152,38 @@ async def delete_discord_message(discord_message_id):
     except Exception as e:
         print("DISCORD DELETE ERROR:", e)
         return False
+
+
+async def send_discord_fallback(text=""):
+    if not DISCORD_WEBHOOK_URL:
+        return None
+
+    try:
+        response = requests.post(
+            f"{DISCORD_WEBHOOK_URL}?wait=true",
+            json={
+                "content": "\n".join(
+                    part for part in [
+                        _telegram_fallback_text(),
+                        _content(text)
+                    ] if part
+                )
+            },
+            timeout=30
+        )
+
+        print(f"DISCORD FALLBACK -> {response.status_code}")
+        print(response.text)
+        return _message_data(response)
+
+    except Exception as e:
+        print("DISCORD FALLBACK ERROR:", e)
+        return None
+
+
+def _telegram_fallback_text():
+    return (
+        "⚠️ Это сообщение не может прогрузиться в Discord.\n"
+        "Просмотрите его в Telegram:\n"
+        "https://t.me/H6_team"
+    )
