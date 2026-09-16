@@ -11,7 +11,6 @@ from sync_store import (
     get_message_record_by_discord,
     save_message_record
 )
-from viber_sync import send_to_viber
 
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -100,8 +99,6 @@ async def _watch_discord():
             "deleted_at": None
         })
 
-        await send_to_viber(data)
-
     @client.event
     async def on_message_edit(before, after):
         if after.author.bot or after.channel.id != channel_id:
@@ -173,7 +170,8 @@ async def _discord_message_to_data(message):
         "path": None,
         "filename": None,
         "size": None,
-        "duration": None
+        "duration": None,
+        "source_url": message.jump_url
     }
 
     if message.stickers:
@@ -315,20 +313,73 @@ def _send_to_telegram(chat_id, data):
             method = "sendAudio"
             file_field = "audio"
 
-        with open(data["path"], "rb") as upload:
-            response = requests.post(
-                f"https://api.telegram.org/bot{BOT_TOKEN}/{method}",
-                data={
-                    "chat_id": chat_id,
-                    "caption": text
-                },
-                files={
-                    file_field: upload
-                },
-                timeout=60
+        try:
+            with open(data["path"], "rb") as upload:
+                response = requests.post(
+                    f"https://api.telegram.org/bot{BOT_TOKEN}/{method}",
+                    data={
+                        "chat_id": chat_id,
+                        "caption": text
+                    },
+                    files={
+                        file_field: upload
+                    },
+                    timeout=60
+                )
+        except Exception as e:
+            print("TELEGRAM MEDIA SEND ERROR:", e)
+            return _send_telegram_fallback(
+                chat_id,
+                text,
+                data.get("source_url")
             )
 
     print(f"TELEGRAM FROM DISCORD -> {response.status_code}")
+    print(response.text)
+
+    if not response.ok:
+        return _send_telegram_fallback(
+            chat_id,
+            text,
+            data.get("source_url")
+        )
+
+    result = response.json()
+    if not result.get("ok"):
+        return _send_telegram_fallback(
+            chat_id,
+            text,
+            data.get("source_url")
+        )
+
+    return result.get("result")
+
+
+def _send_telegram_fallback(chat_id, text, discord_url=None):
+    parts = [
+        "⚠️ Это сообщение не может прогрузиться в Telegram.",
+        "Просмотрите его в Discord:"
+    ]
+
+    if discord_url:
+        parts.append(discord_url)
+
+    if text:
+        parts.extend([
+            "",
+            text
+        ])
+
+    response = requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        json={
+            "chat_id": chat_id,
+            "text": "\n".join(parts)
+        },
+        timeout=30
+    )
+
+    print(f"TELEGRAM FALLBACK FROM DISCORD -> {response.status_code}")
     print(response.text)
 
     if not response.ok:
