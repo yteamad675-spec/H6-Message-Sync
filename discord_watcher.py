@@ -3,6 +3,7 @@ import os
 import threading
 import uuid
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
 
@@ -114,7 +115,8 @@ async def _watch_discord():
         _edit_telegram_message(
             record["telegram_chat_id"],
             record["telegram_message_id"],
-            text
+            text,
+            record.get("type")
         )
 
         record["text"] = text
@@ -126,8 +128,25 @@ async def _watch_discord():
         if message.author.bot or message.channel.id != channel_id:
             return
 
-        record = get_message_record_by_discord(message.id)
+        await _sync_discord_delete(message.id)
+
+    @client.event
+    async def on_raw_message_delete(payload):
+        if payload.channel_id != channel_id:
+            return
+
+        await _sync_discord_delete(payload.message_id)
+
+    async def _sync_discord_delete(discord_message_id):
+        record = get_message_record_by_discord(discord_message_id)
         if not record:
+            print(
+                "DISCORD DELETE SKIPPED: no sync record for",
+                discord_message_id
+            )
+            return
+
+        if record.get("deleted"):
             return
 
         _delete_telegram_message(
@@ -136,7 +155,7 @@ async def _watch_discord():
         )
 
         record["deleted"] = True
-        record["deleted_at"] = _discord_datetime(message.created_at)
+        record["deleted_at"] = None
         save_message_record(record)
 
     try:
@@ -157,6 +176,26 @@ async def _discord_message_to_data(message):
         "duration": None
     }
 
+    if message.stickers:
+        sticker = message.stickers[0]
+        sticker_url = str(sticker.url)
+        filename = _filename_from_url(
+            sticker_url,
+            fallback_suffix=".png"
+        )
+        path = str(Path(MEDIA_FOLDER) / filename)
+
+        _download_file(sticker_url, path)
+
+        data["path"] = path
+        data["filename"] = filename
+        data["size"] = Path(path).stat().st_size
+        data["type"] = _type_from_filename_and_content(
+            filename,
+            None
+        )
+        return data
+
     if not message.attachments:
         return data
 
@@ -173,15 +212,63 @@ async def _discord_message_to_data(message):
     data["path"] = path
     data["filename"] = filename
     data["size"] = attachment.size
-
-    if content_type.startswith("image/"):
-        data["type"] = "photo"
-    elif content_type.startswith("video/"):
-        data["type"] = "video"
-    else:
-        data["type"] = "document"
+    data["duration"] = getattr(attachment, "duration_secs", None)
+    data["type"] = _type_from_filename_and_content(
+        filename,
+        content_type
+    )
 
     return data
+
+
+def _type_from_filename_and_content(filename, content_type):
+    suffix = Path(filename).suffix.lower()
+    content_type = content_type or ""
+
+    if suffix == ".gif" or content_type == "image/gif":
+        return "animation"
+
+    if content_type.startswith("image/"):
+        return "photo"
+
+    if content_type.startswith("video/"):
+        return "video"
+
+    if content_type.startswith("audio/"):
+        if suffix == ".ogg":
+            return "voice"
+
+        return "audio"
+
+    if suffix in (".png", ".jpg", ".jpeg", ".webp"):
+        return "photo"
+
+    if suffix in (".mp4", ".mov", ".webm"):
+        return "video"
+
+    if suffix in (".mp3", ".wav", ".m4a", ".aac", ".flac"):
+        return "audio"
+
+    return "document"
+
+
+def _filename_from_url(url, fallback_suffix=""):
+    path = urlparse(url).path
+    suffix = Path(path).suffix or fallback_suffix
+    return f"{uuid.uuid4()}{suffix}"
+
+
+def _download_file(url, path):
+    Path(path).parent.mkdir(exist_ok=True)
+
+    response = requests.get(
+        url,
+        timeout=60
+    )
+    response.raise_for_status()
+
+    with open(path, "wb") as output:
+        output.write(response.content)
 
 
 def _discord_text(message):
@@ -218,6 +305,15 @@ def _send_to_telegram(chat_id, data):
         elif message_type == "video":
             method = "sendVideo"
             file_field = "video"
+        elif message_type == "animation":
+            method = "sendAnimation"
+            file_field = "animation"
+        elif message_type == "voice":
+            method = "sendVoice"
+            file_field = "voice"
+        elif message_type == "audio":
+            method = "sendAudio"
+            file_field = "audio"
 
         with open(data["path"], "rb") as upload:
             response = requests.post(
@@ -245,7 +341,22 @@ def _send_to_telegram(chat_id, data):
     return result.get("result")
 
 
-def _edit_telegram_message(chat_id, message_id, text):
+def _edit_telegram_message(chat_id, message_id, text, message_type=None):
+    if message_type and message_type != "text":
+        response = requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageCaption",
+            json={
+                "chat_id": chat_id,
+                "message_id": message_id,
+                "caption": text or ""
+            },
+            timeout=30
+        )
+
+        print(f"TELEGRAM CAPTION EDIT FROM DISCORD -> {response.status_code}")
+        print(response.text)
+        return response.ok
+
     response = requests.post(
         f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageText",
         json={
