@@ -174,6 +174,11 @@ async def _discord_message_to_data(message):
         "source_url": message.jump_url
     }
 
+    if _looks_like_external_gif_link(text) and not message.attachments:
+        data["text"] = ""
+        data["type"] = "unsupported"
+        return data
+
     if message.stickers:
         sticker = message.stickers[0]
         sticker_url = str(sticker.url)
@@ -217,6 +222,18 @@ async def _discord_message_to_data(message):
     )
 
     return data
+
+
+def _looks_like_external_gif_link(text):
+    value = (text or "").lower()
+
+    return any(
+        marker in value for marker in (
+            "tenor.com/",
+            "giphy.com/",
+            "gfycat.com/"
+        )
+    )
 
 
 def _type_from_filename_and_content(filename, content_type):
@@ -283,6 +300,13 @@ def _discord_datetime(value):
 def _send_to_telegram(chat_id, data):
     message_type = data["type"]
     text = data.get("text", "")
+
+    if message_type == "unsupported":
+        return _send_telegram_fallback(
+            chat_id,
+            text,
+            data.get("source_url")
+        )
 
     if message_type == "text":
         response = requests.post(
