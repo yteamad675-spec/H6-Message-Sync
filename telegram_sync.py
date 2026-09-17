@@ -21,7 +21,9 @@ from telegram.ext import (
 from discord_sync import (
     DISCORD_WEBHOOK_URL,
     delete_discord_message,
+    delete_discord_user_message,
     edit_discord_message,
+    replace_user_discord_message,
     send_to_discord
 )
 
@@ -311,16 +313,32 @@ async def process_message(message, send_caption=True, dispatch=True):
 
         file = await message.animation.get_file()
 
-        filename = f"{uuid.uuid4()}.gif"
+        gif_filename = f"{uuid.uuid4()}.gif"
+        filename = f"{uuid.uuid4()}.mp4"
 
+        gif_path = f"{MEDIA_FOLDER}/{gif_filename}"
         path = f"{MEDIA_FOLDER}/{filename}"
 
-        await file.download_to_drive(path)
+        await file.download_to_drive(gif_path)
 
-        data["type"] = "gif"
+        clip = VideoFileClip(gif_path)
+        clip.write_videofile(
+            path,
+            fps=15,
+            codec="libx264",
+            audio_codec="aac",
+            preset="ultrafast",
+            logger=None
+        )
+        clip.close()
+
+        os.remove(gif_path)
+
+        data["type"] = "video"
         data["path"] = path
         data["filename"] = filename
-        data["size"] = message.animation.file_size
+        data["size"] = os.path.getsize(path)
+        data["duration"] = int(message.animation.duration or 0)
 
 
     elif message.document:
@@ -508,10 +526,21 @@ async def edited_channel_post(update: Update, context: ContextTypes.DEFAULT_TYPE
         and record.get("discord_message_id")
         and not media_changed
     ):
-        await edit_discord_message(
-            record["discord_message_id"],
-            data
-        )
+        if record.get("source") == "discord":
+            discord_message = await replace_user_discord_message(
+                record["discord_message_id"],
+                data
+            )
+            record["discord_message_id"] = (
+                discord_message.get("id")
+                if discord_message else None
+            )
+            record["source"] = "telegram"
+        else:
+            await edit_discord_message(
+                record["discord_message_id"],
+                data
+            )
     else:
         if record and record.get("discord_message_id"):
             await delete_discord_message(
@@ -558,9 +587,14 @@ async def handle_deleted_telegram_message(chat_id, message_id, deleted_at=None):
         return
 
     if record.get("discord_message_id"):
-        await delete_discord_message(
-            record["discord_message_id"]
-        )
+        if record.get("source") == "discord":
+            await delete_discord_user_message(
+                record["discord_message_id"]
+            )
+        else:
+            await delete_discord_message(
+                record["discord_message_id"]
+            )
 
 
 # --------------------
