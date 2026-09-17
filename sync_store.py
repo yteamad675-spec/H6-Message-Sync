@@ -106,3 +106,4 @@ def mark_message_deleted(chat_id, message_id, deleted_at=None):
     record["deleted_at"] = deleted_at
     save_state(state)
     return record
+
