@@ -20,9 +20,14 @@ def _content(text):
 
 
 async def send_to_discord(data):
+    if DISCORD_BOT_TOKEN and DISCORD_CHANNEL_ID:
+        bot_message = await send_to_discord_as_bot(data)
+        if bot_message:
+            return bot_message
+
     if not DISCORD_WEBHOOK_URL:
-        print("DISCORD_WEBHOOK_URL is not configured")
-        return
+        print("Discord sender is not configured")
+        return None
 
     try:
         message_type = data["type"]
@@ -115,8 +120,81 @@ def _message_data(response):
         return None
 
 
+async def send_to_discord_as_bot(data):
+    if not DISCORD_BOT_TOKEN or not DISCORD_CHANNEL_ID:
+        return None
+
+    try:
+        message_type = data["type"]
+        text = _content(data.get("text", ""))
+        path = data.get("path")
+        filename = data.get("filename")
+
+        if message_type == "text" or not path or not filename:
+            response = requests.post(
+                _bot_channel_messages_url(),
+                headers=_bot_headers(),
+                json={"content": text or " "},
+                timeout=30
+            )
+        else:
+            file_path = Path(path)
+            if not file_path.exists():
+                response = requests.post(
+                    _bot_channel_messages_url(),
+                    headers=_bot_headers(),
+                    json={"content": "\n".join(
+                        part for part in [text, MEDIA_URL + filename] if part
+                    )},
+                    timeout=30
+                )
+            else:
+                content_type = (
+                    mimetypes.guess_type(filename)[0]
+                    or "application/octet-stream"
+                )
+
+                with file_path.open("rb") as upload:
+                    response = requests.post(
+                        _bot_channel_messages_url(),
+                        headers=_bot_headers(),
+                        data={
+                            "payload_json": _payload_json({
+                                "content": text or ""
+                            })
+                        },
+                        files={
+                            "files[0]": (
+                                filename,
+                                upload,
+                                content_type
+                            )
+                        },
+                        timeout=60
+                    )
+
+        print(f"DISCORD BOT -> {response.status_code}")
+        print(response.text)
+        return _message_data(response)
+
+    except Exception as e:
+        print("DISCORD BOT SEND ERROR:", e)
+        return None
+
+
 async def edit_discord_message(discord_message_id, data):
-    if not DISCORD_WEBHOOK_URL or not discord_message_id:
+    if not discord_message_id:
+        return False
+
+    if DISCORD_BOT_TOKEN and DISCORD_CHANNEL_ID:
+        bot_result = await edit_discord_bot_message(
+            discord_message_id,
+            data
+        )
+        if bot_result:
+            return True
+
+    if not DISCORD_WEBHOOK_URL:
         return False
 
     try:
@@ -138,7 +216,15 @@ async def edit_discord_message(discord_message_id, data):
 
 
 async def delete_discord_message(discord_message_id):
-    if not DISCORD_WEBHOOK_URL or not discord_message_id:
+    if not discord_message_id:
+        return False
+
+    if DISCORD_BOT_TOKEN and DISCORD_CHANNEL_ID:
+        bot_result = await delete_discord_user_message(discord_message_id)
+        if bot_result:
+            return True
+
+    if not DISCORD_WEBHOOK_URL:
         return False
 
     try:
@@ -188,6 +274,32 @@ async def delete_discord_user_message(discord_message_id):
         return False
 
 
+async def edit_discord_bot_message(discord_message_id, data):
+    if not DISCORD_BOT_TOKEN or not DISCORD_CHANNEL_ID or not discord_message_id:
+        return False
+
+    try:
+        text = _content(data.get("text", "")) or " "
+
+        response = requests.patch(
+            (
+                "https://discord.com/api/v10/channels/"
+                f"{DISCORD_CHANNEL_ID}/messages/{discord_message_id}"
+            ),
+            headers=_bot_headers(),
+            json={"content": text},
+            timeout=30
+        )
+
+        print(f"DISCORD BOT EDIT -> {response.status_code}")
+        print(response.text)
+        return response.ok
+
+    except Exception as e:
+        print("DISCORD BOT EDIT ERROR:", e)
+        return False
+
+
 async def send_discord_fallback(text=""):
     if not DISCORD_WEBHOOK_URL:
         return None
@@ -222,3 +334,24 @@ def _telegram_fallback_text():
         "https://t.me/H6_team"
     )
 
+
+def _bot_headers():
+    return {
+        "Authorization": f"Bot {DISCORD_BOT_TOKEN}"
+    }
+
+
+def _bot_channel_messages_url():
+    return (
+        "https://discord.com/api/v10/channels/"
+        f"{DISCORD_CHANNEL_ID}/messages"
+    )
+
+
+def _payload_json(payload):
+    import json
+
+    return json.dumps(
+        payload,
+        ensure_ascii=False
+    )
